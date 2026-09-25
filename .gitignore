@@ -28,6 +28,7 @@ dist/*
 !dist/.gitkeep
 *.zip
 *.log
+scratch/
 
 # Editors and operating systems
 .idea/
