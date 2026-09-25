@@ -66,6 +66,11 @@ inputs/
 └── L3B_CASE_100.json
 ```
 
+Loader cũng hỗ trợ bộ input đang lưu theo version trong repo, ví dụ
+`inputs/l3b-inputs-v1/inputs/`, khi manifest ở root khớp chính xác với 100 case
+trong thư mục đó. Nếu có nhiều thư mục input lồng nhau khớp manifest, loader sẽ
+báo lỗi để tránh chọn nhầm release.
+
 Một số case không cung cấp exact order ID. Agent phải dùng candidate và evidence để resolve entity.
 
 ## 4. Sử dụng MCP
@@ -143,6 +148,22 @@ Competition không chấm tên framework hay số lượng class. Scorer đánh 
 Trace chỉ ghi sự kiện quan sát được như `task_assigned`, `handoff`, `tool_result_consumed`, `verification_completed`.
 
 Hoàn thiện mô tả thiết kế trong `ARCHITECTURE.md`.
+
+### NVIDIA model (tùy chọn)
+
+Workflow có thể gửi các facts đã xác minh, đã loại định danh tới NVIDIA endpoint. Cài key
+cục bộ bằng wizard (key được nhập ẩn và ghi vào `.env`):
+
+```bash
+bash scripts/setup_nvidia.sh
+```
+
+Mặc định wizard cấu hình `nvidia/llama-3.1-nemotron-safety-guard-8b-v3` và tối đa 100
+lần gọi model trong một lần chạy. Lưu ý model này được thiết kế cho kiểm duyệt an toàn nội dung,
+không phải phân loại khiếu nại; workflow chỉ nhận lựa chọn nếu model trả về một issue hợp lệ,
+còn lại dùng quyết định xác định sẵn. NVIDIA cho biết endpoint thử nghiệm có thể ghi lại input
+và output, vì vậy không gửi dữ liệu khách hàng nhạy cảm. NVIDIA không công bố một mức RPM cố định
+trong tài liệu endpoint mà mình kiểm tra; giới hạn thực tế phụ thuộc quyền truy cập API.
 
 ## 6. Chạy và kiểm tra
 

@@ -48,10 +48,30 @@ def load_case_set(root: Path, expected_count: int = 100) -> CaseSet:
         raise ValueError("case_set_version must be a non-empty string")
 
     input_root = root / "inputs"
-    actual_files = {path.stem: path for path in input_root.glob("*.json") if path.is_file()}
-    if set(actual_files) != set(raw_ids):
-        missing = sorted(set(raw_ids) - set(actual_files))
-        extra = sorted(set(actual_files) - set(raw_ids))
+
+    def case_files(directory: Path) -> dict[str, Path]:
+        return {
+            path.stem: path
+            for path in directory.glob("*.json")
+            if path.is_file()
+        }
+
+    actual_files = case_files(input_root)
+    expected_ids = set(raw_ids)
+    if set(actual_files) != expected_ids:
+        matching_dirs = [
+            directory
+            for directory in sorted(input_root.glob("*/inputs"))
+            if directory.is_dir() and set(case_files(directory)) == expected_ids
+        ]
+        if len(matching_dirs) == 1:
+            actual_files = case_files(matching_dirs[0])
+        elif len(matching_dirs) > 1:
+            raise ValueError("multiple nested input directories match case-set.json")
+
+    if set(actual_files) != expected_ids:
+        missing = sorted(expected_ids - set(actual_files))
+        extra = sorted(set(actual_files) - expected_ids)
         raise ValueError(f"inputs do not match case-set; missing={missing}, extra={extra}")
     cases = {case_id: _object(actual_files[case_id]) for case_id in raw_ids}
     for case_id, case in cases.items():

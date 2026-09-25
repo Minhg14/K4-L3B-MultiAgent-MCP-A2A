@@ -34,3 +34,5 @@ dist/*
 .vscode/
 .DS_Store
 Thumbs.db
+
+eval/

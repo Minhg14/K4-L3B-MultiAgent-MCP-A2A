@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from .cases import load_case_set
 from .config import Settings
 from .contracts import Contracts
 from .mcp_gateway import connect_gateway
+from .nvidia import NvidiaAdvisor
 from .submission import package_submission, validate_artifacts
 from .trace import TraceWriter
 from .workflow import solve_case
@@ -29,6 +31,7 @@ async def _show_tools(root: Path) -> None:
 
 async def _run(root: Path) -> None:
     settings = Settings.load(root)
+    advisor = _nvidia_advisor()
     case_set = load_case_set(root)
     contracts = Contracts(root / "contracts" / "schemas")
     output_root = root / "outputs"
@@ -47,7 +50,7 @@ async def _run(root: Path) -> None:
         for case_id in case_set.case_ids:
             case = case_set.cases[case_id]
             trace.emit(case_id=case_id, event_type="case_received", actor="coordinator")
-            output = await solve_case(case, gateway, trace)
+            output = await solve_case(case, gateway, trace, advisor)
             contracts.validate_output(output, f"outputs/{case_id}.json")
             if output.get("case_id") != case_id:
                 raise ValueError(f"solver returned a mismatched case_id for {case_id}")
@@ -58,6 +61,20 @@ async def _run(root: Path) -> None:
             )
             temporary.replace(target)
             trace.emit(case_id=case_id, event_type="case_finalized", actor="coordinator")
+
+
+def _nvidia_advisor() -> NvidiaAdvisor | None:
+    api_key = os.getenv("NVIDIA_API_KEY", "").strip()
+    model = os.getenv(
+        "NVIDIA_MODEL", "nvidia/llama-3.1-nemotron-safety-guard-8b-v3"
+    ).strip()
+    if not api_key:
+        return None
+    try:
+        max_calls = int(os.getenv("NVIDIA_MAX_CALLS_PER_RUN", "100"))
+    except ValueError as exc:
+        raise ValueError("NVIDIA_MAX_CALLS_PER_RUN must be an integer") from exc
+    return NvidiaAdvisor(api_key, model, max_calls=max_calls)
 
 
 def parser() -> argparse.ArgumentParser:
